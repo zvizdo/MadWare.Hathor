@@ -18,16 +18,17 @@ import indexReducer from './reducers/index';
 
 import styles from './styles.js';
 
-var historyImpl = hashHistory //browserHistory
-
+let historyImpl = null;
 let middleware = null;
 if (process.env.NODE_ENV == "production") {
+  historyImpl = browserHistory;
   middleware = applyMiddleware(
     thunk,
     routerMiddleware(historyImpl)
   )
 }
 else {
+  historyImpl = hashHistory;
   middleware = applyMiddleware(
     createLogger(),
     thunk,
