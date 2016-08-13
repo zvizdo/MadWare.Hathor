@@ -16,5 +16,8 @@ namespace MadWare.Hathor.RestApi.Models
 
         [JsonProperty(PropertyName = "thumbnail")]
         public string Thumbnail { get; set; }
+
+        [JsonProperty(PropertyName = "secretId")]
+        public string SecretId { get; set; }
     }
 }

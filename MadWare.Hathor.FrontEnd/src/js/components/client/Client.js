@@ -1,17 +1,23 @@
 import React from 'react'
 import { connect } from 'react-redux'
 
+import AddToPlaylist from './../shared/AddToPlaylist';
+import CurrentlyPlaying from './../shared/CurrentlyPlaying';
+import Playlist from './../shared/Playlist';
+
 import setupActions from './../../actions/setupActions';
 import clientActions from './../../actions/clientActions';
 
 import { baseRemoteUrl } from './../../httpConfig';
 import SignalRConnection from './../../utils/SignalRConnection';
+import { canPlayVideo } from './../../utils/playlist';
+import { createSignature } from './../../utils/utils';
+
 
 class Client extends React.Component {
 
   constructor(){
     super();
-    this.state = { addedVideoId: "" };
     this.hub = new SignalRConnection(baseRemoteUrl);
     this.hub.setReceiveMessageCallback(this.onServerMessageRecieved.bind(this));
   }
@@ -20,9 +26,9 @@ class Client extends React.Component {
     this.setState( { addedVideoId: e.target.value } );
   }
 
-  onAddVideoToPlaylist(){
-    this.props.dispatch( clientActions.addVideo(this.props.client.serverId, this.state.addedVideoId) );
-    this.setState( { addedVideoId: "" } );
+  onAddVideoToPlaylist(videoId){
+    let secretId = createSignature( this.props.client.serverId+this.props.client.id, videoId );
+    this.props.dispatch( clientActions.addVideo(this.props.client.serverId, videoId, secretId) );
   }
 
   componentDidMount() {
@@ -52,98 +58,32 @@ class Client extends React.Component {
     }
   }
 
+  onRemoveVideoPlaylist(videoId) {
+    let action = {
+      type: "PLAYLIST_REMOVE_VIDEO",
+      payload: { videoId: videoId, serverId: this.props.client.serverId, clientId: this.props.client.id }
+    }
+    this.props.dispatch( clientActions.pushToServer( this.props.client.serverId, this.props.client.id, action ) );
+  }
+
   render() {
 
     return (
       <div>
 
-        <div class="row" style={{display: this.props.client.serverExists ? "" : "none"}}>
-          <div class="col-md-12">
+        {this.props.client.serverExists ?
+          (<AddToPlaylist onVideoAdded={this.onAddVideoToPlaylist.bind(this)} />) : null}
 
-            <div class="bs-component">
-              <div class="jumbotron">
+        {canPlayVideo(this.props.playlist.currentVideoIndex, this.props.playlist.videos.length) ?
+          (<CurrentlyPlaying video={this.props.playlist.videos[this.props.playlist.currentVideoIndex]} />) : null}
 
-                <div class="row" >
-                  <div class="col-md-8">
-                    <div class="form-group">
-                      <input type="text"
-                        class="form-control"
-                        placeholder="...enter YouTube video id..."
-                        value={this.state.addedVideoId}
-                        onChange={this.onVideoInputChange.bind(this)}/>
-                    </div>
-                  </div>
-
-                  <div class="col-md-4">
-                    <a onClick={this.onAddVideoToPlaylist.bind(this)} class="btn btn-primary btn-lg">
-                      ADD TO PLAYLIST
-                      <div class="ripple-container"></div>
-                    </a>
-                  </div>
-
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-md-12">
-
-            <div class="bs-component">
-              <div class="jumbotron">
-
-                <div class="bs-component">
-                  <div class="list-group">
-
-                    {!this.props.client.serverExists ?
-                      (<p>Playlist with this id does not exist or was closed!</p>) : null}
-
-                    {this.props.client.serverExists && this.props.playlist.videos.length === 0 ?
-                    (<p>Playlist is currently empty!</p>)
-                    : null}
-
-                    {this.props.playlist.videos.length > 0 &&
-                     this.props.playlist.currentVideoIndex < this.props.playlist.videos.length ?
-                    (<div key={this.props.playlist.videos[this.props.playlist.currentVideoIndex].id} class="list-group-item">
-                      <div class="row-picture">
-                        <img class="circle" src={this.props.playlist.videos[this.props.playlist.currentVideoIndex].thumbnail} alt="icon"/>
-                      </div>
-                      <div class="row-content">
-                        <h4 class="list-group-item-heading">Playing:</h4>
-                        <p class="list-group-item-text">{this.props.playlist.videos[this.props.playlist.currentVideoIndex].title}</p>
-                      </div>
-                    </div>)
-                    : null
-                   }
-
-                   <div class="list-group-separator"></div>
-
-                    {this.props.playlist.videos.map( function(v){
-
-                      return (
-                        <div key={v.id} class="list-group-item">
-                          <div class="row-picture">
-                            <img class="circle" src={v.thumbnail} alt="icon"/>
-                          </div>
-                          <div class="row-content">
-                            <p class="list-group-item-text">{v.title}</p>
-                          </div>
-                        </div>
-                      );
-
-                    } )}
-
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-        </div>
+       <Playlist
+         serverId={this.props.client.serverId}
+         clientId={this.props.client.id}
+         serverExists={this.props.client.serverExists}
+         videos={this.props.playlist.videos}
+         currentVideoIndex={this.props.playlist.currentVideoIndex}
+         onPlaylistRemoveVideo={this.onRemoveVideoPlaylist.bind(this)} />
 
       </div>
     );

@@ -3,7 +3,7 @@ import { generateRandomString } from './../utils/utils'
 const setupActions = {
 
   generateServerId: function(){
-    let id = generateRandomString(4);
+    let id = generateRandomString(5);
 
     return {
       type: "SERVER_SERVER_ID",
@@ -12,7 +12,7 @@ const setupActions = {
   },
 
   generateClientId: function(){
-    let id = generateRandomString(5);
+    let id = generateRandomString(6);
 
     return {
       type: "CLIENT_CLIENT_ID",

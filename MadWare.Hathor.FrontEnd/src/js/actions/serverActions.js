@@ -10,7 +10,7 @@ const serverActions = {
         {type: "CLIENT_PLAYLIST_REFRESH", payload: playlist}
       )
       .then( function(resp){
-        dispatch({type: "SERVER_PLAYLIST_REFRESHED"})
+        dispatch({type: "SERVER_PLAYLIST_REFRESH_PUSHED"})
       } )
       .catch( function(error){
         console.error(error);

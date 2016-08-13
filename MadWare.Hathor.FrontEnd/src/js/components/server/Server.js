@@ -2,13 +2,19 @@ import React from 'react';
 import { connect } from 'react-redux';
 
 import YouTube from 'react-youtube';
+import PlayerControls from './PlayerControls';
+import AddToPlaylist from './../shared/AddToPlaylist';
+import CurrentlyPlaying from './../shared/CurrentlyPlaying';
+import Playlist from './../shared/Playlist';
 
 import setupActions from './../../actions/setupActions';
 import serverActions from './../../actions/serverActions';
-import { generateRandomNumber } from './../../utils/utils';
+import clientActions from './../../actions/clientActions';
+import { generateRandomNumber, createSignature } from './../../utils/utils';
 
 import { baseRemoteUrl } from './../../httpConfig';
 import SignalRConnection from './../../utils/SignalRConnection';
+import { canPlayVideo } from './../../utils/playlist';
 
 class Server extends React.Component {
 
@@ -34,10 +40,12 @@ class Server extends React.Component {
     }
 
     onServerMessageRecieved(action){
+      console.log(this.props.playlist);
       this.props.dispatch(action);
-
+      console.log(this.props.playlist);
       switch (action.type) {
         case "PLAYLIST_ADD_VIDEO":
+        case "PLAYLIST_REMOVE_VIDEO":
           this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, this.props.playlist) );
           break;
 
@@ -85,12 +93,22 @@ class Server extends React.Component {
      return this.props.playlist.videos[this.props.playlist.currentVideoIndex];
    }
 
-   onRepeatSettingChange(e){
-     this.props.dispatch( { type: "PLAYLIST_REPEAT_ON_OFF", payload: e.target.checked } );
+   onRepeatSettingChange(repeatState){
+     this.props.dispatch( { type: "PLAYLIST_REPEAT_ON_OFF", payload: repeatState } );
    }
 
-   onShuffleSettingChange(e){
-     this.props.dispatch( { type: "PLAYLIST_SHUFFLE_ON_OFF", payload: e.target.checked } );
+   onShuffleSettingChange(shuffleState){
+     this.props.dispatch( { type: "PLAYLIST_SHUFFLE_ON_OFF", payload: shuffleState } );
+   }
+
+   onAddVideoToPlaylist(videoId) {
+     let secretId = createSignature( this.props.server.id+this.props.server.id, videoId );
+     this.props.dispatch( clientActions.addVideo(this.props.server.id, videoId, secretId) );
+   }
+
+   onRemoveVideoPlaylist(videoId) {
+     this.props.dispatch( { type: "PLAYLIST_REMOVE_VIDEO_SERVER", payload: videoId } );
+     this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, this.props.playlist) );
    }
 
    componentDidUpdate(prevProps, prevState) {
@@ -118,42 +136,50 @@ class Server extends React.Component {
     let video = this.getVideoToPlay();
 
     return (
-      <div class="row">
-        <div class="col-md-12">
+      <div>
 
-          <div class="bs-component">
-            <div class="jumbotron">
+        <div class="row">
+          <div class="col-md-8">
 
-              <p>Share playlist id: <strong>{this.props.server.id}</strong></p>
+            <div class="bs-component">
+              <div class="jumbotron">
 
-              <YouTube
-                id="ytVideoPlayer"
-                videoId={video === null ? null : video.id}
-                opts={opts}
-                onReady={this._onReady.bind(this)}
-                onEnd={this._onEnd.bind(this)}
-                onError={this._onError.bind(this)}
-              />
+                <p>Share playlist id: <strong>{this.props.server.id}</strong></p>
 
-              <div class="col-md-offset-2 col-md-10">
-                <div class="checkbox">
-                  <label>
-                    <input type="checkbox" onChange={this.onRepeatSettingChange.bind(this)} />
-                      repeat
-                  </label>
-                </div>
-                <div class="checkbox">
-                  <label>
-                    <input type="checkbox" onChange={this.onShuffleSettingChange.bind(this)} />
-                      shuffle
-                  </label>
-                </div>
+                <YouTube
+                  id="ytVideoPlayer"
+                  videoId={video === null ? null : video.id}
+                  opts={opts}
+                  onReady={this._onReady.bind(this)}
+                  onEnd={this._onEnd.bind(this)}
+                  onError={this._onError.bind(this)} />
+
               </div>
-
             </div>
+
           </div>
 
+          <div class="col-md-4">
+
+            <PlayerControls
+               onRepeatChange={this.onRepeatSettingChange.bind(this)}
+               onShuffleChange={this.onShuffleSettingChange.bind(this)} />
+
+            <AddToPlaylist onVideoAdded={this.onAddVideoToPlaylist.bind(this)} />
+          </div>
         </div>
+
+        {canPlayVideo(this.props.playlist.currentVideoIndex, this.props.playlist.videos.length) ?
+          (<CurrentlyPlaying video={this.props.playlist.videos[this.props.playlist.currentVideoIndex]} />) : null}
+
+       <Playlist
+          serverId={this.props.server.id}
+          clientId={this.props.server.id}
+          isServer={true}
+          videos={this.props.playlist.videos}
+          currentVideoIndex={this.props.playlist.currentVideoIndex}
+          onPlaylistRemoveVideo={this.onRemoveVideoPlaylist.bind(this)} />
+
       </div>
     );
   }

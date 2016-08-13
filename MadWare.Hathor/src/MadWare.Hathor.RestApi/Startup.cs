@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MadWare.Hathor.RestApi.Services.Youtube;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.Extensions.Caching.Memory;
+using MadWare.Hathor.RestApi.Services.HubManager;
 
 namespace MadWare.Hathor.RestApi
 {
@@ -33,12 +35,16 @@ namespace MadWare.Hathor.RestApi
             var policy = new CorsPolicy();
 
             // Add framework services.
+            services.AddMemoryCache();
             services.AddMvc();
 
             services.AddSignalR(options => options.Hubs.EnableDetailedErrors = true);
 
             //app services
-            services.AddSingleton<IYoutubeService>(new YoutubeService(Configuration["YouTube:ApiKey"], "Hathor"));
+            services.AddScoped(typeof(IHubManager), typeof(HubManager));
+            services.AddSingleton<IYoutubeService>((serviceProvider) => {
+                return new YoutubeService(Configuration["YouTube:ApiKey"], "Hathor", serviceProvider.GetService<IMemoryCache>());
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

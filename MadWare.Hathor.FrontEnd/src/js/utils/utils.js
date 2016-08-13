@@ -1,3 +1,5 @@
+import md5 from 'js-md5';
+
 const generateRandomString = function (length, chars = '#aA') {
     var mask = '';
     if (chars.indexOf('a') > -1) mask += 'abcdefghijklmnopqrstuvwxyz';
@@ -9,8 +11,19 @@ const generateRandomString = function (length, chars = '#aA') {
     return result;
 }
 
-const generateRandomNumber = function getRandomArbitrary(min, max) {
+const generateRandomNumber = function(min, max) {
     return parseInt( Math.random() * (max - min) + min );
 }
 
-export { generateRandomString, generateRandomNumber }
+const createSignature = function( baseString, signingKey ){
+  let hash = md5.create();
+  hash.update(baseString);
+  hash.update(signingKey);
+
+  return hash.hex();
+}
+
+export {
+  generateRandomString,
+  generateRandomNumber,
+  createSignature }
