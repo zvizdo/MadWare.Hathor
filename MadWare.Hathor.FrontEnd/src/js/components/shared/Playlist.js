@@ -40,7 +40,7 @@ class Playlist extends React.Component {
                         <div class="row-content">
                           <p class="list-group-item-text">{v.title}</p>
 
-                          {!v.upVotes.find( vote => vote == sig ) ?
+                          {sig !== v.secretId && !v.upVotes.find( vote => vote == sig ) ?
                             (<span class="upvotes">{v.upVotes.length}
                              <i style={{cursor: "pointer"}} class="material-icons" onClick={this.onUpVoteVideo.bind(this, v.id)}>favorite</i>
                             </span>) :
@@ -50,6 +50,9 @@ class Playlist extends React.Component {
 
                           {sig === v.secretId || this.props.isServer ?
                             (<i style={{cursor: "pointer"}} class="material-icons" onClick={this.onRemoveVideo.bind(this, v.id)}>clear</i>) : null}
+
+                          {v.wasPlayed ?
+                            (<i style={{float: "right"}} class="material-icons">check box</i>) : null}
 
                         </div>
                       </div>

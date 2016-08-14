@@ -22,6 +22,12 @@ class Client extends React.Component {
     this.hub.setReceiveMessageCallback(this.onServerMessageRecieved.bind(this));
   }
 
+  componentWillMount() {
+    this.props.dispatch( setupActions.clearServer() );
+    this.props.dispatch( setupActions.setServerIdOnClient(this.props.params.serverId) );
+    this.props.dispatch( setupActions.generateClientId(this.hub, this.props.params.serverId) );
+  }
+
   onVideoInputChange(e){
     this.setState( { addedVideoId: e.target.value } );
   }
@@ -29,17 +35,6 @@ class Client extends React.Component {
   onAddVideoToPlaylist(videoId){
     let secretId = createSignature( this.props.client.serverId+this.props.client.id, videoId );
     this.props.dispatch( clientActions.addVideo(this.props.client.serverId, videoId, secretId) );
-  }
-
-  componentDidMount() {
-    this.props.dispatch( setupActions.clearServer() );
-    this.props.dispatch( setupActions.setServerIdOnClient(this.props.params.serverId) );
-    this.props.dispatch( setupActions.generateClientId() );
-
-    this.hub.connect(function(){
-        this.hub.registerClient(this.props.client.id, this.props.client.serverId);
-      }.bind(this)
-    );
   }
 
   componentWillUnmount() {

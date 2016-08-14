@@ -43,6 +43,25 @@ const playlistReducer = function(state=initialState, action){
           } )
         };
 
+      case "PLAYLIST_CHANGE_VIDEO_PLAYED":
+        return {
+          ...state,
+          videos: state.videos.map( (v, i) => {
+            if (i === action.payload.idx)
+              return {...v, wasPlayed: action.payload.wasPlayed}
+            else
+              return v;
+          } )
+        };
+
+      case "PLAYLIST_RESET_VIDEOS_PLAYED":
+        return {
+          ...state,
+          videos: state.videos.map( (v, i) => {
+              return {...v, wasPlayed: false}
+          } )
+        };
+
       case "SERVER_PLAYLIST_RESTORE":
         return action.payload;
 

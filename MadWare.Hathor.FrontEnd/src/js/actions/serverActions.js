@@ -70,7 +70,7 @@ const serverActions = {
       if(exists)
         return;
 
-      video = {...video, upVotes: []}
+      video = {...video, upVotes: [], wasPlayed: false}
       let videos = [...tempPlaylist.videos, video];
       tempPlaylist.videos = videos;
 

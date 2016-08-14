@@ -12,7 +12,7 @@ const generateRandomString = function (length, chars = '#aA') {
 }
 
 const generateRandomNumber = function(min, max) {
-    return parseInt( Math.random() * (max - min) + min );
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 const createSignature = function( baseString, signingKey ){

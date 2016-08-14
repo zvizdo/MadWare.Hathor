@@ -14,7 +14,7 @@ import { generateRandomNumber, createSignature } from './../../utils/utils';
 
 import { baseRemoteUrl } from './../../httpConfig';
 import SignalRConnection from './../../utils/SignalRConnection';
-import { canPlayVideo } from './../../utils/playlist';
+import { canPlayVideo, playlistMngr } from './../../utils/playlist';
 
 class Server extends React.Component {
 
@@ -24,6 +24,10 @@ class Server extends React.Component {
       this.hub = new SignalRConnection(baseRemoteUrl);
       this.hub.setReceiveMessageCallback(this.onServerMessageRecieved.bind(this));
     }
+
+    _onReady(event) {
+     this.player = event.target;
+   }
 
     componentWillMount() {
       this.props.dispatch( setupActions.clearClient() );
@@ -39,33 +43,24 @@ class Server extends React.Component {
       this.props.dispatch( serverActions.handleReceiveMessage(action, this.props) );
     }
 
-    _onReady(event) {
-     this.player = event.target;
-   }
+   onVideoEnd(event) {
+     const prevIdx = this.props.playlist.currentVideoIndex;
+     this.props.dispatch( { type: "PLAYLIST_CHANGE_VIDEO_PLAYED", payload: { idx: prevIdx, wasPlayed: true } } );
 
-   _onEnd(event) {
-     let tempPlaylist = { ...this.props.playlist }
-
-     if(this.props.playlist.shuffle) {
-       let rnd = generateRandomNumber(0, this.props.playlist.videos.length);
-       while (rnd === this.props.playlist.currentVideoIndex) {
-         rnd = generateRandomNumber(0, this.props.playlist.videos.length);
+     playlistMngr.updatePlaylist(this.props.playlist);
+     let nextIdx = playlistMngr.chooseNextVideo( function(act) {
+       switch (act) {
+         case "ALL_PLAYED":
+           this.props.dispatch( { type: "PLAYLIST_RESET_VIDEOS_PLAYED" } );
+           break;
        }
+     }.bind(this) );
 
-       tempPlaylist.currentVideoIndex = rnd;
-       this.props.dispatch( {type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: rnd} );
-     }
-     else if (this.props.playlist.repeat &&
-         this.props.playlist.videos.length === this.props.playlist.currentVideoIndex+1) {
-           this.props.dispatch( {type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: 0} );
-           tempPlaylist.currentVideoIndex = 0;
-      }
-      else {
-          this.props.dispatch( {type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: this.props.playlist.currentVideoIndex+1} );
-          tempPlaylist.currentVideoIndex = this.props.playlist.currentVideoIndex+1;
-      }
+     playlistMngr.playlist.currentVideoIndex = nextIdx;
 
-     this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, tempPlaylist) );
+     this.props.dispatch( { type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: nextIdx } );
+     this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, playlistMngr.playlist) );
+     serverActions.storePlaylistLocal(playlistMngr.playlist);
    }
 
    _onError(event){
@@ -86,12 +81,28 @@ class Server extends React.Component {
      this.props.dispatch( serverActions.restorePlaylistLocal() );
    }
 
+   onCleanPlayedClick() {
+     this.props.dispatch( { type: "PLAYLIST_RESET_VIDEOS_PLAYED" } );
+   }
+
    onRepeatSettingChange(repeatState) {
      this.props.dispatch( { type: "PLAYLIST_REPEAT_ON_OFF", payload: repeatState } );
+     serverActions.storePlaylistLocal( { ...this.props.playlist, repeat: repeatState } );
+
+     if (!canPlayVideo(this.props.playlist.currentVideoIndex, this.props.playlist.videos.length)){
+       this.props.playlist.repeat = repeatState;
+       this.onVideoEnd(this.player);
+     }
    }
 
    onShuffleSettingChange(shuffleState){
      this.props.dispatch( { type: "PLAYLIST_SHUFFLE_ON_OFF", payload: shuffleState } );
+     serverActions.storePlaylistLocal( { ...this.props.playlist, shuffle: shuffleState } );
+
+     if (!canPlayVideo(this.props.playlist.currentVideoIndex, this.props.playlist.videos.length)) {
+       this.props.playlist.shuffle = shuffleState;
+       this.onVideoEnd(this.player);
+     }
    }
 
    onAddVideoToPlaylist(videoId) {
@@ -149,7 +160,7 @@ class Server extends React.Component {
                   videoId={video === null ? null : video.id}
                   opts={opts}
                   onReady={this._onReady.bind(this)}
-                  onEnd={this._onEnd.bind(this)}
+                  onEnd={this.onVideoEnd.bind(this)}
                   onError={this._onError.bind(this)} />
 
               </div>
@@ -160,7 +171,10 @@ class Server extends React.Component {
           <div class="col-md-4">
 
             <PlayerControls
+               repeat={this.props.playlist.repeat}
+               shuffle={this.props.playlist.shuffle}
                onNewPlaylistClick={this.onNewPlaylistRequested.bind(this)}
+               onCleanPlayedClick={this.onCleanPlayedClick.bind(this)}
                onRepeatChange={this.onRepeatSettingChange.bind(this)}
                onShuffleChange={this.onShuffleSettingChange.bind(this)} />
 

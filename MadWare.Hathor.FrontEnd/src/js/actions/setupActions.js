@@ -24,7 +24,7 @@ const setupActions = {
     };
   },
 
-  generateClientId: function(){
+  generateClientId: function(hub, serverId){
     let strKey = STORE_CLIENT_ID_KEY;
 
     let id = storageMngr.get(strKey);
@@ -34,6 +34,11 @@ const setupActions = {
       id = generateRandomString(7);
       storageMngr.set(strKey, { clientId: id });
     }
+
+    hub.disconnect();
+    hub.connect(function(){
+        hub.registerClient(id, serverId);
+    }.bind(this) );
 
     return {
       type: "CLIENT_CLIENT_ID",
