@@ -1,5 +1,3 @@
-import { createSignature } from './../utils/utils';
-
 let initialState = {
   repeat: false,
   shuffle: false,
@@ -28,31 +26,10 @@ const playlistReducer = function(state=initialState, action){
           currentVideoIndex: action.payload
         };
 
-      case "PLAYLIST_ADD_VIDEO":
-        let exists = state.videos.find( v => v.id === action.payload.id );
-        if(exists)
-          return state;
-
+      case "PLAYLIST_CHANGE_VIDEOS":
         return {
           ...state,
-          videos: [...state.videos, action.payload]
-        };
-
-      case "PLAYLIST_REMOVE_VIDEO_SERVER":
-        let vids = state.videos.filter( v => v.id !== action.payload );
-        return {
-          ...state,
-          videos: [...vids]
-        };
-
-      case "PLAYLIST_REMOVE_VIDEO":
-        let payload = action.payload;
-        let sig = createSignature( payload.serverId+payload.clientId, payload.videoId );
-
-        let videos = state.videos.filter( v => v.secretId !== sig );
-        return {
-          ...state,
-          videos: [...videos]
+          videos: [...action.payload]
         };
 
       case "CLIENT_PLAYLIST_REFRESH":

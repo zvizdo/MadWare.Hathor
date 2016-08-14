@@ -40,19 +40,7 @@ class Server extends React.Component {
     }
 
     onServerMessageRecieved(action){
-      console.log(this.props.playlist);
-      this.props.dispatch(action);
-      console.log(this.props.playlist);
-      switch (action.type) {
-        case "PLAYLIST_ADD_VIDEO":
-        case "PLAYLIST_REMOVE_VIDEO":
-          this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, this.props.playlist) );
-          break;
-
-        case "SERVER_CLIENT_REFRESH_REQUESTED":
-          this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, this.props.playlist, action.payload) );
-          break;
-      }
+      this.props.dispatch( serverActions.handleReceiveMessage(action, this.props) );
     }
 
     _onReady(event) {
@@ -60,6 +48,7 @@ class Server extends React.Component {
    }
 
    _onEnd(event) {
+     let tempPlaylist = { ...this.props.playlist }
 
      if(this.props.playlist.shuffle) {
        let rnd = generateRandomNumber(0, this.props.playlist.videos.length);
@@ -67,17 +56,20 @@ class Server extends React.Component {
          rnd = generateRandomNumber(0, this.props.playlist.videos.length);
        }
 
+       tempPlaylist.currentVideoIndex = rnd;
        this.props.dispatch( {type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: rnd} );
      }
      else if (this.props.playlist.repeat &&
          this.props.playlist.videos.length === this.props.playlist.currentVideoIndex+1) {
            this.props.dispatch( {type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: 0} );
+           tempPlaylist.currentVideoIndex = 0;
       }
       else {
           this.props.dispatch( {type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: this.props.playlist.currentVideoIndex+1} );
+          tempPlaylist.currentVideoIndex = this.props.playlist.currentVideoIndex+1;
       }
 
-     this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, this.props.playlist) );
+     this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, tempPlaylist) );
    }
 
    _onError(event){
@@ -107,8 +99,7 @@ class Server extends React.Component {
    }
 
    onRemoveVideoPlaylist(videoId) {
-     this.props.dispatch( { type: "PLAYLIST_REMOVE_VIDEO_SERVER", payload: videoId } );
-     this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, this.props.playlist) );
+     this.props.dispatch( serverActions.removeVideoServer( videoId, this.props ) );
    }
 
    componentDidUpdate(prevProps, prevState) {
