@@ -1,6 +1,7 @@
 import { getHttpInstance } from './../httpConfig';
 import { createSignature } from './../utils/utils';
 import { storageMngr,  STORE_PLAYLIST_KEY } from './../utils/storageManager';
+import { getVideoIdx } from './../utils/playlist';
 
 
 const serverActions = {
@@ -14,6 +15,28 @@ const serverActions = {
       )
       .then( function(resp){
         dispatch({type: "SERVER_PLAYLIST_REFRESH_PUSHED"})
+      } )
+      .catch( function(error){
+        console.error(error);
+      } );
+    };
+  },
+
+  addVideoServer: function(serverId, videoId, secretId){
+    return (dispatch) => {
+      let http = getHttpInstance();
+
+      http.get('api/client/addVideo/' + serverId + '/' + videoId + (secretId ? ("/"+secretId) : "" ) )
+      .then( function(resp){
+        if(resp.data.success) {
+          dispatch( { type: "PLAYLIST_ADD_VIDEO_SUCCESSFUL_REQUEST" } );
+        } else {
+          dispatch( {
+            type: "PLAYLIST_ADD_VIDEO_UNSUCCESSFULL_REQUEST",
+            payload: "Video with this id does not exist!"
+          } );
+          alert("Video with this id does not exist!");
+        }
       } )
       .catch( function(error){
         console.error(error);
@@ -76,6 +99,11 @@ const serverActions = {
 
       this.storePlaylistLocal(tempPlaylist);
       dispatch( { type: "PLAYLIST_CHANGE_VIDEOS", payload: videos } );
+      if (!serverProps.playlist.currentVideoId) {
+        dispatch( { type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: videos[videos.length-1].id } );
+        tempPlaylist.currentVideoId = videos[videos.length-1].id;
+      }
+
       dispatch( this.refreshPlaylist(serverProps.server.id, tempPlaylist) );
     };
 

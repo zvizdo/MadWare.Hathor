@@ -10,7 +10,7 @@ import clientActions from './../../actions/clientActions';
 
 import { baseRemoteUrl } from './../../httpConfig';
 import SignalRConnection from './../../utils/SignalRConnection';
-import { canPlayVideo } from './../../utils/playlist';
+import { canPlayVideo, getVideoIdx } from './../../utils/playlist';
 import { createSignature } from './../../utils/utils';
 
 
@@ -69,7 +69,19 @@ class Client extends React.Component {
     this.props.dispatch( clientActions.pushToServer( this.props.client.serverId, this.props.client.id, action ) );
   }
 
+  getVideoToPlay() {
+    if (!this.props.playlist.currentVideoId)
+     return null;
+
+    let crntVidIdx = getVideoIdx(this.props.playlist.currentVideoId, this.props.playlist.videos);
+    if( crntVidIdx === null || crntVidIdx >= this.props.playlist.videos.length)
+     return null;
+
+    return this.props.playlist.videos[crntVidIdx];
+  }
+
   render() {
+    let video = this.getVideoToPlay();
 
     return (
       <div>
@@ -77,15 +89,15 @@ class Client extends React.Component {
         {this.props.client.serverExists ?
           (<AddToPlaylist onVideoAdded={this.onAddVideoToPlaylist.bind(this)} />) : null}
 
-        {canPlayVideo(this.props.playlist.currentVideoIndex, this.props.playlist.videos.length) ?
-          (<CurrentlyPlaying video={this.props.playlist.videos[this.props.playlist.currentVideoIndex]} />) : null}
+          {video ?
+            (<CurrentlyPlaying video={video} />) : null}
 
        <Playlist
          serverId={this.props.client.serverId}
          clientId={this.props.client.id}
          serverExists={this.props.client.serverExists}
          videos={this.props.playlist.videos}
-         currentVideoIndex={this.props.playlist.currentVideoIndex}
+         currentVideoId={this.props.playlist.currentVideoId}
          onPlaylistRemoveVideo={this.onRemoveVideoPlaylist.bind(this)}
          onPlaylistUpVoteVideo={this.onUpVoteVideoPlaylist.bind(this)} />
 

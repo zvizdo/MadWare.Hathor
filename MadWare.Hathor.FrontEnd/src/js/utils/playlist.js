@@ -2,12 +2,31 @@ import React, { PropTypes } from 'react';
 import { generateRandomNumber } from './utils';
 
 const canPlayVideo = function(vidIndex, playlistLength) {
+  if (!vidIndex)
+    return false;
+
   return playlistLength > 0 &&
           vidIndex < playlistLength;
 }
 
 const isPlaylistEmpty = function(serverExists, playlistLength){
   return serverExists && playlistLength === 0;
+}
+
+const getVideoIdx = function(videoId, videos) {
+  for (let i = 0; i < videos.length; i++){
+    if (videoId === videos[i].id)
+      return i;
+  }
+
+  return null;
+}
+
+const getVideoIdByIdx = function(vIdx, videos) {
+  if (vIdx >= videos.length)
+    return null;
+
+  return videos[vIdx].id;
 }
 
 const videoPropType = PropTypes.shape({
@@ -60,7 +79,8 @@ class PlaylistManager {
 
   chooseNextVideoWithProba(videos) {
     let sum = 0;
-    let rnd = generateRandomNumber(0, this._sumWeights(videos)-1);
+    let sumW = this._sumWeights(videos);
+    let rnd = generateRandomNumber(0, sumW-1);
 
     let i = 0;
     while ( sum < rnd ) {
@@ -68,12 +88,13 @@ class PlaylistManager {
       i += 1;
     }
 
-    return videos[i].videoIndex;
+    return videos[Math.max(0, i-1)].video.id;
   }
 
   chooseNextVideo(listenerFunc) {
     const playlistLength = this.playlist.videos.length;
-    const { currentVideoIndex, repeat, shuffle } = this.playlist;
+    const { currentVideoId, repeat, shuffle } = this.playlist;
+    const currentVideoIndex = getVideoIdx(currentVideoId, this.playlist.videos);
 
     try {
       this.playlist.videos[currentVideoIndex].wasPlayed = true;
@@ -83,20 +104,20 @@ class PlaylistManager {
     let wereAllPlayed = videos.length === 0;
 
     if (!repeat && !shuffle) {
-      return Math.min( currentVideoIndex + 1, playlistLength );
+      return getVideoIdByIdx( Math.min( currentVideoIndex + 1, playlistLength ), this.playlist.videos);
     }
     else if ( repeat && !shuffle ) {
       if (currentVideoIndex+1 >= playlistLength) {
         listenerFunc("ALL_PLAYED");
         this.setAllVideosAsNotPlayed();
-        return 0;
+        return this.playlist.videos[0].id;
       }
       else
-        return Math.min( currentVideoIndex + 1, playlistLength );
+        return getVideoIdByIdx( Math.min( currentVideoIndex + 1, playlistLength ), this.playlist.videos);
     }
     else if ( !repeat && shuffle ){
       if (wereAllPlayed)
-        return playlistLength;
+        return null;
       else
         return this.chooseNextVideoWithProba(videos);
     }
@@ -119,6 +140,8 @@ const playlistMngr = new PlaylistManager();
 
 export {
   canPlayVideo,
+  getVideoIdx,
+  getVideoIdByIdx,
   isPlaylistEmpty,
   videoPropType,
   playlistMngr

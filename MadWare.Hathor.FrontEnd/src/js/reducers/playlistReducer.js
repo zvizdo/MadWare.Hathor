@@ -1,7 +1,7 @@
 let initialState = {
   repeat: false,
   shuffle: false,
-  currentVideoIndex: 0,
+  currentVideoId: null,
   videos: []
 }
 
@@ -23,7 +23,7 @@ const playlistReducer = function(state=initialState, action){
       case "PLAYLIST_CHANGE_CURRENT_VIDEO":
         return {
           ...state,
-          currentVideoIndex: action.payload
+          currentVideoId: action.payload
         };
 
       case "PLAYLIST_CHANGE_VIDEOS":
@@ -47,7 +47,7 @@ const playlistReducer = function(state=initialState, action){
         return {
           ...state,
           videos: state.videos.map( (v, i) => {
-            if (i === action.payload.idx)
+            if (v.id === action.payload.videoId)
               return {...v, wasPlayed: action.payload.wasPlayed}
             else
               return v;

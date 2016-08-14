@@ -33,7 +33,7 @@ class Playlist extends React.Component {
                   {this.props.videos.map( function(v,i) {
                     let sig = createSignature( this.props.serverId+this.props.clientId, v.id );
                     return (
-                      <div key={v.id} class={"list-group-item" + (i===this.props.currentVideoIndex ? " playing" : "")}>
+                      <div key={v.id} class={"list-group-item" + (v.id === this.props.currentVideoId ? " playing" : "")}>
                         <div class="row-picture">
                           <img class="circle" src={v.thumbnail} alt="icon"/>
                         </div>
@@ -48,7 +48,7 @@ class Playlist extends React.Component {
                              <i class="material-icons">grade</i>
                             </span>)}
 
-                          {sig === v.secretId || this.props.isServer ?
+                          { v.id !== this.props.currentVideoId && (sig === v.secretId || this.props.isServer) ?
                             (<i style={{cursor: "pointer"}} class="material-icons" onClick={this.onRemoveVideo.bind(this, v.id)}>clear</i>) : null}
 
                           {v.wasPlayed ?
@@ -78,7 +78,7 @@ Playlist.propTypes  = {
   clientId: React.PropTypes.string,
   serverExists: React.PropTypes.bool,
   videos: React.PropTypes.arrayOf(videoPropType).isRequired,
-  currentVideoIndex: React.PropTypes.number,
+  currentVideoId: React.PropTypes.string,
   onPlaylistRemoveVideo: React.PropTypes.func.isRequired,
   onPlaylistUpVoteVideo: React.PropTypes.func.isRequired,
   isServer: React.PropTypes.bool
@@ -88,7 +88,7 @@ Playlist.defaultProps = {
   serverId: "",
   clientId: "",
   serverExists: true,
-  currentVideoIndex: 0,
+  currentVideoId: null,
   isServer: false
 }
 

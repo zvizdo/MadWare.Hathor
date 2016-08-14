@@ -9,12 +9,11 @@ import Playlist from './../shared/Playlist';
 
 import setupActions from './../../actions/setupActions';
 import serverActions from './../../actions/serverActions';
-import clientActions from './../../actions/clientActions';
 import { generateRandomNumber, createSignature } from './../../utils/utils';
 
 import { baseRemoteUrl } from './../../httpConfig';
 import SignalRConnection from './../../utils/SignalRConnection';
-import { canPlayVideo, playlistMngr } from './../../utils/playlist';
+import { canPlayVideo, getVideoIdx, playlistMngr } from './../../utils/playlist';
 
 class Server extends React.Component {
 
@@ -39,16 +38,35 @@ class Server extends React.Component {
       this.hub.disconnect();
     }
 
+    componentDidUpdate(prevProps, prevState) {
+      if (this.player &&
+          this.props.playlist.currentVideoId &&
+          this.player.getPlayerState() !== 1 &&
+          prevProps.playlist.currentVideoId === this.props.playlist.currentVideoId) {
+        this.player.playVideo();
+      }
+
+      //when using chrome cast the player behaves weird
+      //this is an ugly fix when video changes because autoplay doesn't work
+      setTimeout( function(){
+        if(this.player &&
+          (this.player.getPlayerState() === -1 ||
+          this.player.getPlayerState() === 3 )) {
+          this.player.playVideo();
+        }
+      }.bind(this), 3000 );
+    }
+
     onServerMessageRecieved(action){
       this.props.dispatch( serverActions.handleReceiveMessage(action, this.props) );
     }
 
    onVideoEnd(event) {
-     const prevIdx = this.props.playlist.currentVideoIndex;
-     this.props.dispatch( { type: "PLAYLIST_CHANGE_VIDEO_PLAYED", payload: { idx: prevIdx, wasPlayed: true } } );
+     const prevVideoId = this.props.playlist.currentVideoId;
+     this.props.dispatch( { type: "PLAYLIST_CHANGE_VIDEO_PLAYED", payload: { videoId: prevVideoId, wasPlayed: true } } );
 
      playlistMngr.updatePlaylist(this.props.playlist);
-     let nextIdx = playlistMngr.chooseNextVideo( function(act) {
+     let nextVideoId = playlistMngr.chooseNextVideo( function(act) {
        switch (act) {
          case "ALL_PLAYED":
            this.props.dispatch( { type: "PLAYLIST_RESET_VIDEOS_PLAYED" } );
@@ -56,9 +74,9 @@ class Server extends React.Component {
        }
      }.bind(this) );
 
-     playlistMngr.playlist.currentVideoIndex = nextIdx;
+     playlistMngr.playlist.currentVideoId = nextVideoId;
 
-     this.props.dispatch( { type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: nextIdx } );
+     this.props.dispatch( { type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: nextVideoId } );
      this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, playlistMngr.playlist) );
      serverActions.storePlaylistLocal(playlistMngr.playlist);
    }
@@ -69,16 +87,20 @@ class Server extends React.Component {
    }
 
    getVideoToPlay() {
-     if(this.props.playlist.currentVideoIndex === null ||
-        this.props.playlist.videos.length == this.props.playlist.currentVideoIndex )
+     if (!this.props.playlist.currentVideoId)
       return null;
 
-     return this.props.playlist.videos[this.props.playlist.currentVideoIndex];
+     let crntVidIdx = getVideoIdx(this.props.playlist.currentVideoId, this.props.playlist.videos);
+     if( crntVidIdx === null || crntVidIdx >= this.props.playlist.videos.length)
+      return null;
+
+     return this.props.playlist.videos[crntVidIdx];
    }
 
    onNewPlaylistRequested() {
      this.props.dispatch( setupActions.generateServerId(this.hub, true) );
-     this.props.dispatch( serverActions.restorePlaylistLocal() );
+     this.props.dispatch( { type: "PLAYLIST_CHANGE_VIDEOS", payload: [] } );
+     this.props.dispatch( { type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: null } );
    }
 
    onCleanPlayedClick() {
@@ -89,7 +111,7 @@ class Server extends React.Component {
      this.props.dispatch( { type: "PLAYLIST_REPEAT_ON_OFF", payload: repeatState } );
      serverActions.storePlaylistLocal( { ...this.props.playlist, repeat: repeatState } );
 
-     if (!canPlayVideo(this.props.playlist.currentVideoIndex, this.props.playlist.videos.length)){
+     if (this.props.playlist.videos.length > 0 && this.getVideoToPlay() == null){
        this.props.playlist.repeat = repeatState;
        this.onVideoEnd(this.player);
      }
@@ -99,7 +121,7 @@ class Server extends React.Component {
      this.props.dispatch( { type: "PLAYLIST_SHUFFLE_ON_OFF", payload: shuffleState } );
      serverActions.storePlaylistLocal( { ...this.props.playlist, shuffle: shuffleState } );
 
-     if (!canPlayVideo(this.props.playlist.currentVideoIndex, this.props.playlist.videos.length)) {
+     if (this.props.playlist.videos.length > 0 && this.getVideoToPlay() == null) {
        this.props.playlist.shuffle = shuffleState;
        this.onVideoEnd(this.player);
      }
@@ -107,7 +129,7 @@ class Server extends React.Component {
 
    onAddVideoToPlaylist(videoId) {
      let secretId = createSignature( this.props.server.id+this.props.server.id, videoId );
-     this.props.dispatch( clientActions.addVideo(this.props.server.id, videoId, secretId) );
+     this.props.dispatch( serverActions.addVideoServer(this.props.server.id, videoId, secretId) );
    }
 
    onRemoveVideoPlaylist(videoId) {
@@ -118,18 +140,6 @@ class Server extends React.Component {
      this.props.dispatch( serverActions.upVoteVideo(
        { videoId: videoId, serverId: this.props.server.id, clientId: this.props.server.id },
        this.props ) );
-   }
-
-   componentDidUpdate(prevProps, prevState) {
-     //when using chrome cast the player behaves weird
-     //this is an ugly fix when video changes because autoplay doesn't work
-     setTimeout( function(){
-       if(this.player !== null &&
-         (this.player.getPlayerState() === -1 ||
-         this.player.getPlayerState() === 3 )) {
-         this.player.playVideo();
-       }
-     }.bind(this), 3000 );
    }
 
   render() {
@@ -157,7 +167,7 @@ class Server extends React.Component {
 
                 <YouTube
                   id="ytVideoPlayer"
-                  videoId={video === null ? null : video.id}
+                  videoId={!video ? null : video.id}
                   opts={opts}
                   onReady={this._onReady.bind(this)}
                   onEnd={this.onVideoEnd.bind(this)}
@@ -182,15 +192,15 @@ class Server extends React.Component {
           </div>
         </div>
 
-        {canPlayVideo(this.props.playlist.currentVideoIndex, this.props.playlist.videos.length) ?
-          (<CurrentlyPlaying video={this.props.playlist.videos[this.props.playlist.currentVideoIndex]} />) : null}
+        {video ?
+          (<CurrentlyPlaying video={video} />) : null}
 
        <Playlist
           serverId={this.props.server.id}
           clientId={this.props.server.id}
           isServer={true}
           videos={this.props.playlist.videos}
-          currentVideoIndex={this.props.playlist.currentVideoIndex}
+          currentVideoId={this.props.playlist.currentVideoId}
           onPlaylistRemoveVideo={this.onRemoveVideoPlaylist.bind(this)}
           onPlaylistUpVoteVideo={this.onUpVoteVideoPlaylist.bind(this)} />
 
