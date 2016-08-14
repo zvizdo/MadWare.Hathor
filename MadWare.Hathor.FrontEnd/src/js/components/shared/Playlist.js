@@ -5,8 +5,12 @@ import { createSignature } from './../../utils/utils';
 
 class Playlist extends React.Component {
 
-  onRemoveVideo(videoId){
+  onRemoveVideo(videoId) {
     this.props.onPlaylistRemoveVideo(videoId);
+  }
+
+  onUpVoteVideo(videoId) {
+    this.props.onPlaylistUpVoteVideo(videoId);
   }
 
   render() {
@@ -35,6 +39,14 @@ class Playlist extends React.Component {
                         </div>
                         <div class="row-content">
                           <p class="list-group-item-text">{v.title}</p>
+
+                          {!v.upVotes.find( vote => vote == sig ) ?
+                            (<span class="upvotes">{v.upVotes.length}
+                             <i style={{cursor: "pointer"}} class="material-icons" onClick={this.onUpVoteVideo.bind(this, v.id)}>favorite</i>
+                            </span>) :
+                            (<span class="upvotes">{v.upVotes.length}
+                             <i class="material-icons">grade</i>
+                            </span>)}
 
                           {sig === v.secretId || this.props.isServer ?
                             (<i style={{cursor: "pointer"}} class="material-icons" onClick={this.onRemoveVideo.bind(this, v.id)}>clear</i>) : null}
@@ -65,6 +77,7 @@ Playlist.propTypes  = {
   videos: React.PropTypes.arrayOf(videoPropType).isRequired,
   currentVideoIndex: React.PropTypes.number,
   onPlaylistRemoveVideo: React.PropTypes.func.isRequired,
+  onPlaylistUpVoteVideo: React.PropTypes.func.isRequired,
   isServer: React.PropTypes.bool
 }
 

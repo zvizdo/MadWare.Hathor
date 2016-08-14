@@ -32,6 +32,20 @@ const playlistReducer = function(state=initialState, action){
           videos: [...action.payload]
         };
 
+      case "PLAYLIST_CHANGE_VIDEO":
+        return {
+          ...state,
+          videos: state.videos.map( (v, i) => {
+            if (v.id === action.payload.id)
+              return action.payload
+            else
+              return v;
+          } )
+        };
+
+      case "SERVER_PLAYLIST_RESTORE":
+        return action.payload;
+
       case "CLIENT_PLAYLIST_REFRESH":
         return action.payload;
 

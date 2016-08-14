@@ -66,6 +66,14 @@ class Client extends React.Component {
     this.props.dispatch( clientActions.pushToServer( this.props.client.serverId, this.props.client.id, action ) );
   }
 
+  onUpVoteVideoPlaylist(videoId) {
+    let action = {
+      type: "PLAYLIST_UPVOTE_VIDEO",
+      payload: { videoId: videoId, serverId: this.props.client.serverId, clientId: this.props.client.id }
+    }
+    this.props.dispatch( clientActions.pushToServer( this.props.client.serverId, this.props.client.id, action ) );
+  }
+
   render() {
 
     return (
@@ -83,7 +91,8 @@ class Client extends React.Component {
          serverExists={this.props.client.serverExists}
          videos={this.props.playlist.videos}
          currentVideoIndex={this.props.playlist.currentVideoIndex}
-         onPlaylistRemoveVideo={this.onRemoveVideoPlaylist.bind(this)} />
+         onPlaylistRemoveVideo={this.onRemoveVideoPlaylist.bind(this)}
+         onPlaylistUpVoteVideo={this.onUpVoteVideoPlaylist.bind(this)} />
 
       </div>
     );

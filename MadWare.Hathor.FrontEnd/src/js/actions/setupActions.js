@@ -1,21 +1,22 @@
 import { generateRandomString } from './../utils/utils';
-import storageMngr from './../utils/storageManager';
-
-const STORE_SERVER_ID_KEY = 'store_serverId';
-const STORE_CLIENT_ID_KEY = 'store_clientId';
+import { storageMngr, STORE_SERVER_ID_KEY, STORE_CLIENT_ID_KEY, STORE_PLAYLIST_KEY } from './../utils/storageManager';
 
 const setupActions = {
 
-  generateServerId: function(){
-    let strKey = STORE_SERVER_ID_KEY;
-
-    let id = storageMngr.get(strKey);
+  generateServerId: function(hub, newServer = false){
+    let id = newServer ? null : storageMngr.get(STORE_SERVER_ID_KEY);
     if (id)
       id = id.serverId;
     else {
       id = generateRandomString(5);
-      storageMngr.set(strKey, { serverId: id });
+      storageMngr.set(STORE_SERVER_ID_KEY, { serverId: id });
+      storageMngr.remove(STORE_PLAYLIST_KEY);
     }
+
+    hub.disconnect();
+    hub.connect(function() {
+        hub.registerServer(id);
+    }.bind(this) );
 
     return {
       type: "SERVER_SERVER_ID",

@@ -13,7 +13,8 @@ const videoPropType = PropTypes.shape({
   id: React.PropTypes.string.isRequired,
   title: React.PropTypes.string.isRequired,
   thumbnail: React.PropTypes.string.isRequired,
-  secretId: React.PropTypes.string.isRequired
+  secretId: React.PropTypes.string.isRequired,
+  upVotes: React.PropTypes.array.isRequired
 });
 
 export {

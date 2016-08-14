@@ -59,4 +59,13 @@ class StorageManager {
 
 const storageMngr = new StorageManager(window, JSON);
 
-export default storageMngr;
+const STORE_SERVER_ID_KEY = 'store_serverId';
+const STORE_CLIENT_ID_KEY = 'store_clientId';
+const STORE_PLAYLIST_KEY = 'store_playlist';
+
+export {
+  storageMngr,
+  STORE_SERVER_ID_KEY,
+  STORE_CLIENT_ID_KEY,
+  STORE_PLAYLIST_KEY
+ };

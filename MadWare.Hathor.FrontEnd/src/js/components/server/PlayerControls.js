@@ -2,6 +2,10 @@ import React from 'react'
 
 class PlayerControls extends React.Component {
 
+  onNewPlaylist(e) {
+    this.props.onNewPlaylistClick();
+  }
+
   onRepeatSettingChange (e) {
     this.props.onRepeatChange(e.target.checked);
   }
@@ -16,6 +20,10 @@ class PlayerControls extends React.Component {
         <div class="col-md-12">
           <div class="bs-component">
             <div class="jumbotron">
+
+                <a class="btn btn-primary btn-lg" onClick={this.onNewPlaylist.bind(this)} >
+                  NEW PLAYLIST
+                <div class="ripple-container"></div></a>
 
                 <div class="checkbox">
                   <label>
@@ -40,11 +48,13 @@ class PlayerControls extends React.Component {
 }
 
 PlayerControls.propTypes = {
+  onNewPlaylistClick: React.PropTypes.func,
   onRepeatChange: React.PropTypes.func,
   onShuffleChange: React.PropTypes.func
 }
 
 PlayerControls.defaultProps = {
+  onNewPlaylistClick: () => {},
   onRepeatChange: () => {},
   onShuffleChange: () => {}
 }

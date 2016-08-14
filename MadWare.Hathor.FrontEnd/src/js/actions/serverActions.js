@@ -1,5 +1,7 @@
 import { getHttpInstance } from './../httpConfig';
 import { createSignature } from './../utils/utils';
+import { storageMngr,  STORE_PLAYLIST_KEY } from './../utils/storageManager';
+
 
 const serverActions = {
 
@@ -19,6 +21,24 @@ const serverActions = {
     };
   },
 
+  storePlaylistLocal: function(playlist) {
+    storageMngr.set(STORE_PLAYLIST_KEY, playlist);
+  },
+
+  restorePlaylistLocal: function() {
+    let playlist = storageMngr.get(STORE_PLAYLIST_KEY);
+    if (!playlist)
+      return {
+        type: "PLAYLIST_CHANGE_VIDEOS",
+        payload: []
+      };
+
+    return {
+      type: "SERVER_PLAYLIST_RESTORE",
+      payload: playlist
+    };
+  },
+
   handleReceiveMessage: function(action, serverProps){
     return (dispatch) => {
 
@@ -29,6 +49,10 @@ const serverActions = {
 
         case "PLAYLIST_REMOVE_VIDEO":
           dispatch( this.removeVideo(action.payload, serverProps) );
+          break;
+
+        case "PLAYLIST_UPVOTE_VIDEO":
+          dispatch( this.upVoteVideo(action.payload, serverProps) );
           break;
 
         case "SERVER_CLIENT_REFRESH_REQUESTED":
@@ -46,10 +70,12 @@ const serverActions = {
       if(exists)
         return;
 
+      video = {...video, upVotes: []}
       let videos = [...tempPlaylist.videos, video];
       tempPlaylist.videos = videos;
 
-      dispatch( { type: "PLAYLIST_CHANGE_VIDEOS", payload: videos } )
+      this.storePlaylistLocal(tempPlaylist);
+      dispatch( { type: "PLAYLIST_CHANGE_VIDEOS", payload: videos } );
       dispatch( this.refreshPlaylist(serverProps.server.id, tempPlaylist) );
     };
 
@@ -63,7 +89,8 @@ const serverActions = {
       let videos = tempPlaylist.videos.filter( v => v.secretId !== sig );
       tempPlaylist.videos = videos;
 
-      dispatch( { type: "PLAYLIST_CHANGE_VIDEOS", payload: videos } )
+      this.storePlaylistLocal(tempPlaylist);
+      dispatch( { type: "PLAYLIST_CHANGE_VIDEOS", payload: videos } );
       dispatch( this.refreshPlaylist(serverProps.server.id, tempPlaylist) );
     };
   },
@@ -74,7 +101,33 @@ const serverActions = {
       let videos = tempPlaylist.videos.filter( v => v.id !== videoId );
       tempPlaylist.videos = videos;
 
-      dispatch( { type: "PLAYLIST_CHANGE_VIDEOS", payload: videos } )
+      this.storePlaylistLocal(tempPlaylist);
+      dispatch( { type: "PLAYLIST_CHANGE_VIDEOS", payload: videos } );
+      dispatch( this.refreshPlaylist(serverProps.server.id, tempPlaylist) );
+    };
+  },
+
+  upVoteVideo(videoUpVotePayload, serverProps) {
+    return (dispatch) => {
+      let tempPlaylist = {...serverProps.playlist}
+      let video = tempPlaylist.videos.find( v => v.id === videoUpVotePayload.videoId )
+      if (!video)
+        return;
+
+      const sig = createSignature( videoUpVotePayload.serverId+videoUpVotePayload.clientId, videoUpVotePayload.videoId );
+      if (video.upVotes.find( up => up === sig ))
+        return;
+
+      video = {...video, upVotes: [...video.upVotes, sig]};
+      tempPlaylist.videos = tempPlaylist.videos.map( (v, i) => {
+        if (v.id === videoUpVotePayload.videoId)
+            return video;
+        else
+          return v;
+      } );
+
+      this.storePlaylistLocal(tempPlaylist);
+      dispatch( { type: "PLAYLIST_CHANGE_VIDEO", payload: video } );
       dispatch( this.refreshPlaylist(serverProps.server.id, tempPlaylist) );
     };
   }

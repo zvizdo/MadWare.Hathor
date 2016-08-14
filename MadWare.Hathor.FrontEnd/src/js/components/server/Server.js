@@ -25,14 +25,10 @@ class Server extends React.Component {
       this.hub.setReceiveMessageCallback(this.onServerMessageRecieved.bind(this));
     }
 
-    componentDidMount() {
+    componentWillMount() {
       this.props.dispatch( setupActions.clearClient() );
-      this.props.dispatch( setupActions.generateServerId() );
-
-      this.hub.connect(function(){
-          this.hub.registerServer(this.props.server.id);
-        }.bind(this)
-      );
+      this.props.dispatch( setupActions.generateServerId(this.hub) );
+      this.props.dispatch( serverActions.restorePlaylistLocal() );
     }
 
     componentWillUnmount() {
@@ -77,7 +73,7 @@ class Server extends React.Component {
      console.log(event);
    }
 
-   getVideoToPlay(){
+   getVideoToPlay() {
      if(this.props.playlist.currentVideoIndex === null ||
         this.props.playlist.videos.length == this.props.playlist.currentVideoIndex )
       return null;
@@ -85,7 +81,12 @@ class Server extends React.Component {
      return this.props.playlist.videos[this.props.playlist.currentVideoIndex];
    }
 
-   onRepeatSettingChange(repeatState){
+   onNewPlaylistRequested() {
+     this.props.dispatch( setupActions.generateServerId(this.hub, true) );
+     this.props.dispatch( serverActions.restorePlaylistLocal() );
+   }
+
+   onRepeatSettingChange(repeatState) {
      this.props.dispatch( { type: "PLAYLIST_REPEAT_ON_OFF", payload: repeatState } );
    }
 
@@ -100,6 +101,12 @@ class Server extends React.Component {
 
    onRemoveVideoPlaylist(videoId) {
      this.props.dispatch( serverActions.removeVideoServer( videoId, this.props ) );
+   }
+
+   onUpVoteVideoPlaylist(videoId) {
+     this.props.dispatch( serverActions.upVoteVideo(
+       { videoId: videoId, serverId: this.props.server.id, clientId: this.props.server.id },
+       this.props ) );
    }
 
    componentDidUpdate(prevProps, prevState) {
@@ -153,6 +160,7 @@ class Server extends React.Component {
           <div class="col-md-4">
 
             <PlayerControls
+               onNewPlaylistClick={this.onNewPlaylistRequested.bind(this)}
                onRepeatChange={this.onRepeatSettingChange.bind(this)}
                onShuffleChange={this.onShuffleSettingChange.bind(this)} />
 
@@ -169,7 +177,8 @@ class Server extends React.Component {
           isServer={true}
           videos={this.props.playlist.videos}
           currentVideoIndex={this.props.playlist.currentVideoIndex}
-          onPlaylistRemoveVideo={this.onRemoveVideoPlaylist.bind(this)} />
+          onPlaylistRemoveVideo={this.onRemoveVideoPlaylist.bind(this)}
+          onPlaylistUpVoteVideo={this.onUpVoteVideoPlaylist.bind(this)} />
 
       </div>
     );
