@@ -22,6 +22,8 @@ class Server extends React.Component {
       this.player = null;
       this.hub = new SignalRConnection(baseRemoteUrl);
       this.hub.setReceiveMessageCallback(this.onServerMessageRecieved.bind(this));
+
+      this.pushToServerInProgress = false;
     }
 
     _onReady(event) {
@@ -38,11 +40,21 @@ class Server extends React.Component {
       this.hub.disconnect();
     }
 
-    componentDidUpdate(prevProps, prevState) {
-      if ( prevProps.playlist.ver !== this.props.playlist.ver ){
-        //playlist changed - save locally and push update
+    pushPlaylistUpdates(ver) {
+      if( ver === this.props.playlist.ver ){
         this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, this.props.playlist) );
         serverActions.storePlaylistLocal(this.props.playlist);
+        this.pushToServerInProgress = false;
+      } else {
+        setTimeout( this.pushPlaylistUpdates.bind(this, this.props.playlist.ver), 100 )
+      }
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+      if ( !this.pushToServerInProgress && prevProps.playlist.ver !== this.props.playlist.ver ) {
+        //playlist changed - save locally and push update
+        setTimeout( this.pushPlaylistUpdates.bind(this, this.props.playlist.ver), 100 );
+        this.pushToServerInProgress = true;
       }
 
       //if no video is played and shuffle or repeat changed -> force to choose next video if possible
