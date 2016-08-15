@@ -94,11 +94,14 @@ class PlaylistManager {
   chooseNextVideo(listenerFunc) {
     const playlistLength = this.playlist.videos.length;
     const { currentVideoId, repeat, shuffle } = this.playlist;
-    const currentVideoIndex = getVideoIdx(currentVideoId, this.playlist.videos);
+    let currentVideoIndex = getVideoIdx(currentVideoId, this.playlist.videos);
 
     try {
       this.playlist.videos[currentVideoIndex].wasPlayed = true;
     }catch(e) {}
+
+    if (currentVideoIndex == null)
+      currentVideoIndex = playlistLength;
 
     let videos = this.videosToPlay();
     let wereAllPlayed = videos.length === 0;

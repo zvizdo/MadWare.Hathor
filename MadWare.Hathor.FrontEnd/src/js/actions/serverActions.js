@@ -95,16 +95,11 @@ const serverActions = {
 
       video = {...video, upVotes: [], wasPlayed: false}
       let videos = [...tempPlaylist.videos, video];
-      tempPlaylist.videos = videos;
 
-      this.storePlaylistLocal(tempPlaylist);
       dispatch( { type: "PLAYLIST_CHANGE_VIDEOS", payload: videos } );
       if (!serverProps.playlist.currentVideoId) {
         dispatch( { type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: videos[videos.length-1].id } );
-        tempPlaylist.currentVideoId = videos[videos.length-1].id;
       }
-
-      dispatch( this.refreshPlaylist(serverProps.server.id, tempPlaylist) );
     };
 
   },
@@ -115,11 +110,8 @@ const serverActions = {
       const sig = createSignature( videoRemovePayload.serverId+videoRemovePayload.clientId, videoRemovePayload.videoId );
 
       let videos = tempPlaylist.videos.filter( v => v.secretId !== sig );
-      tempPlaylist.videos = videos;
 
-      this.storePlaylistLocal(tempPlaylist);
       dispatch( { type: "PLAYLIST_CHANGE_VIDEOS", payload: videos } );
-      dispatch( this.refreshPlaylist(serverProps.server.id, tempPlaylist) );
     };
   },
 
@@ -127,11 +119,8 @@ const serverActions = {
     return (dispatch) => {
       let tempPlaylist = { ...serverProps.playlist }
       let videos = tempPlaylist.videos.filter( v => v.id !== videoId );
-      tempPlaylist.videos = videos;
 
-      this.storePlaylistLocal(tempPlaylist);
       dispatch( { type: "PLAYLIST_CHANGE_VIDEOS", payload: videos } );
-      dispatch( this.refreshPlaylist(serverProps.server.id, tempPlaylist) );
     };
   },
 
@@ -147,16 +136,8 @@ const serverActions = {
         return;
 
       video = {...video, upVotes: [...video.upVotes, sig]};
-      tempPlaylist.videos = tempPlaylist.videos.map( (v, i) => {
-        if (v.id === videoUpVotePayload.videoId)
-            return video;
-        else
-          return v;
-      } );
 
-      this.storePlaylistLocal(tempPlaylist);
       dispatch( { type: "PLAYLIST_CHANGE_VIDEO", payload: video } );
-      dispatch( this.refreshPlaylist(serverProps.server.id, tempPlaylist) );
     };
   }
 

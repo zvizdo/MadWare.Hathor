@@ -39,6 +39,19 @@ class Server extends React.Component {
     }
 
     componentDidUpdate(prevProps, prevState) {
+      if ( prevProps.playlist.ver !== this.props.playlist.ver ){
+        //playlist changed - save locally and push update
+        this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, this.props.playlist) );
+        serverActions.storePlaylistLocal(this.props.playlist);
+      }
+
+      //if no video is played and shuffle or repeat changed -> force to choose next video if possible
+      if (this.player && this.props.playlist.videos.length > 0 && this.getVideoToPlay() == null &&
+          (prevProps.playlist.repeat !== this.props.playlist.repeat || prevProps.playlist.shuffle !== this.props.playlist.shuffle) ) {
+        this.onVideoEnd(this.player);
+      }
+
+      //if same video is selected twice consecutively
       if (this.player &&
           this.props.playlist.currentVideoId &&
           this.player.getPlayerState() !== 1 &&
@@ -63,7 +76,8 @@ class Server extends React.Component {
 
    onVideoEnd(event) {
      const prevVideoId = this.props.playlist.currentVideoId;
-     this.props.dispatch( { type: "PLAYLIST_CHANGE_VIDEO_PLAYED", payload: { videoId: prevVideoId, wasPlayed: true } } );
+     if (prevVideoId)
+        this.props.dispatch( { type: "PLAYLIST_CHANGE_VIDEO_PLAYED", payload: { videoId: prevVideoId, wasPlayed: true } } );
 
      playlistMngr.updatePlaylist(this.props.playlist);
      let nextVideoId = playlistMngr.chooseNextVideo( function(act) {
@@ -74,11 +88,7 @@ class Server extends React.Component {
        }
      }.bind(this) );
 
-     playlistMngr.playlist.currentVideoId = nextVideoId;
-
      this.props.dispatch( { type: "PLAYLIST_CHANGE_CURRENT_VIDEO", payload: nextVideoId } );
-     this.props.dispatch( serverActions.refreshPlaylist(this.props.server.id, playlistMngr.playlist) );
-     serverActions.storePlaylistLocal(playlistMngr.playlist);
    }
 
    _onError(event){
@@ -109,22 +119,10 @@ class Server extends React.Component {
 
    onRepeatSettingChange(repeatState) {
      this.props.dispatch( { type: "PLAYLIST_REPEAT_ON_OFF", payload: repeatState } );
-     serverActions.storePlaylistLocal( { ...this.props.playlist, repeat: repeatState } );
-
-     if (this.props.playlist.videos.length > 0 && this.getVideoToPlay() == null){
-       this.props.playlist.repeat = repeatState;
-       this.onVideoEnd(this.player);
-     }
    }
 
    onShuffleSettingChange(shuffleState){
      this.props.dispatch( { type: "PLAYLIST_SHUFFLE_ON_OFF", payload: shuffleState } );
-     serverActions.storePlaylistLocal( { ...this.props.playlist, shuffle: shuffleState } );
-
-     if (this.props.playlist.videos.length > 0 && this.getVideoToPlay() == null) {
-       this.props.playlist.shuffle = shuffleState;
-       this.onVideoEnd(this.player);
-     }
    }
 
    onAddVideoToPlaylist(videoId) {
