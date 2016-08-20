@@ -104,8 +104,9 @@ class Server extends React.Component {
    }
 
    _onError(event){
-     console.log("VIDEO ERROR!!!");
-     console.log(event);
+     //console.log("VIDEO ERROR!!!");
+     //console.log(event);
+     onVideoEnd(this.player);
    }
 
    getVideoToPlay() {
