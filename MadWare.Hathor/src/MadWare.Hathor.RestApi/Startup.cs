@@ -40,6 +40,8 @@ namespace MadWare.Hathor.RestApi
 
             services.AddSignalR(options => options.Hubs.EnableDetailedErrors = true);
 
+            services.AddDataProtection(opt => opt.ApplicationDiscriminator = "hathor");
+
             //app services
             services.AddScoped(typeof(IHubManager), typeof(HubManager));
             services.AddSingleton<IYoutubeService>((serviceProvider) => {

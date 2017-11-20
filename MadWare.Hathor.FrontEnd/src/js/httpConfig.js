@@ -1,10 +1,10 @@
 import axios from 'axios'
 
 if (process.env.NODE_ENV == "production") {
-  axios.defaults.baseURL = 'http://52.25.101.132:8000';
+  axios.defaults.baseURL = 'http://46.19.11.19:8866';
 }
 else {
-  axios.defaults.baseURL = 'http://localhost:5000';
+  axios.defaults.baseURL = 'http://46.19.11.19:8866'; //'http://localhost:5000';
 }
 
 const baseRemoteUrl = axios.defaults.baseURL;

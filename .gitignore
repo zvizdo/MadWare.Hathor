@@ -213,4 +213,5 @@ _Pvt_Extensions/
 
 # Frontend dist
 dist/
+*.pyc
 
